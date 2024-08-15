@@ -10,9 +10,9 @@ from protobufs import (
 
 from data_classes import RobotCommand
 
-
+import json
 class CommandsSender:
-    UDP_IP = "127.0.0.1"
+    UDP_IP = "172.16.41.67"
     UDP_PORT = 20010
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -28,7 +28,7 @@ class CommandsSender:
 
     @classmethod
     def send(cls, robot_commands: list[RobotCommand]):
-        robot_commands = [
+        robot_commands_proto = [
             grSim_Commands_pb2.grSim_Robot_Command(**asdict(command))
             for command in robot_commands
         ]
@@ -36,14 +36,14 @@ class CommandsSender:
         commands = grSim_Commands_pb2.grSim_Commands()
         commands.timestamp = 0
         commands.isteamyellow = cls.is_yellow_team
-        commands.robot_commands.extend(robot_commands)
+        commands.robot_commands.extend(robot_commands_proto)
         print(commands.robot_commands)
         packet = grSim_Packet_pb2.grSim_Packet()
         packet.commands.CopyFrom(commands)
 
         serialized_packet = packet.SerializeToString()
 
-        cls.sock.sendto(serialized_packet, (cls.UDP_IP, cls.UDP_PORT))
+        cls.sock.sendto(json.dumps([asdict(command) for command in robot_commands]).encode('utf-8'), (cls.UDP_IP, cls.UDP_PORT))
 
     @classmethod
     def update_my_team(
